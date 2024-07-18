@@ -3,7 +3,7 @@ Yii2 excel导入导出类
 引入
 
 ```
-use jianyan\excel\Excel;
+use xinqingch\excel\Excel;
 ```
 
 ## Demo
