@@ -1,6 +1,6 @@
 <?php
 
-namespace morven\excel;
+namespace xinqingch\excel;
 
 use Exception;
 use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
@@ -20,7 +20,7 @@ use PhpOffice\PhpSpreadsheet\Style\Alignment;
  * 导出导入Excel
  *
  * Class Excel
- * @package morven\excel
+ * @package xinqingch\excel
  * @author morven<8818190@qq.com>
  */
 class Excel
