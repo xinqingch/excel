@@ -86,6 +86,8 @@ class Excel
                     // 写入excel
                     $rowR = Coordinate::stringFromColumnIndex($span);
                     $sheet->getColumnDimension($rowR)->setWidth(isset($value[3])?$value[3]:20);
+                    $sheet->getDefaultRowDimension()->setRowHeight(isset($value[4])?$value[4]:20);
+                    $sheet->getStyle($rowR)->getAlignment()->setWrapText(true);
                     if (in_array($span, $image) || in_array($rowR, $image)) { // 如果这一列应该是图片
                         if (file_exists($realData)) { // 本地文件
                             $drawing = new Drawing();
@@ -290,11 +292,11 @@ class Excel
         // unset($spreadsheet);
         // exit;
         //$md5 = md5(serialize($dataArray));
-        if(!empty($path)){
-            if (!file_exists($path)) {
-                mkdir($path, 0777, true);
-            }
-        }
+        // if(!empty($path)){
+        //     if (!file_exists($path)) {
+        //         mkdir($path, 0777, true);
+        //     }
+        // }
 
         //$path = $path .$md5 . '.'.$suffix;
         //$path=
@@ -398,7 +400,7 @@ class Excel
     }
 
 
-    /**
+   /**
      * 处理多sheet
      * @param [type] $spreadsheet
      * @param [type] $n
@@ -406,16 +408,37 @@ class Excel
      */
     public function opSheet($spreadsheet, $n, $data)
     {
+        //$start = microtime(true);
         $spreadsheet->createSheet(); //创建sheet
-        $objActSheet = $spreadsheet->setActiveSheetIndex($n); //设置当前的活动sheet
+        $sheet = $spreadsheet->setActiveSheetIndex($n)->setTitle($data['title']); //设置当前的活动sheet,设置sheet的名称
         // $keys = $data['rows'][0]; //这是你的数据键名
         // $count = count($keys); //计算你所占的列数
         $count = count($data['rows'][0]); //计算你所占的列数
         $infoNum = count($data['info'] ?? []); //求k-v值的所占行数, 多表头占用行
+        $total = count($data['rows']);//总行数
+        //dump($total);
         $infoStart = $infoNum + 1; //下面的详细信息的开始行数
-        $cellName = $this->getExcelHeader($count);
-//dump($data['width']);exit;
-        $sheet = $spreadsheet->getActiveSheet($n)->setTitle($data['title']); //设置sheet的名称
+        // 假设 getExcelHeader 返回一个列名的数组（如 ['A', 'B', 'C', ...]）
+        $cellNames = $this->getExcelHeader($count);
+        // 设置列宽和标题样式（一次性）
+        foreach ($cellNames as $index => $columnName) {
+            //dump($columnName);
+            $sheet->getColumnDimension($columnName)->setWidth($data['width'][$index]);
+            $cellName1 = $columnName.'1:'.$columnName.$total;
+            //$sheet->getStyle($cellName1)->getNumberFormat()->setFormatCode(NumberFormat::FORMAT_NUMBER_00);//数字格式
+
+            if($data['color'][$index]!='FFFFFF') {
+
+                //dump($cellName1);exit;
+                $sheet->getStyle($cellName1)->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setARGB($data['color'][$index]);//单元格背景色
+            }
+            //$sheet->getColumnDimension($columnName)->getNumberFormat()->setFormatCode(NumberFormat::FORMAT_NUMBER_00);//数字格式
+            // 可以在这里设置标题行的样式（如果需要）
+        }
+        //dump($data['color']);exit;
+
+        //
+        //$sheet = $spreadsheet->getActiveSheet($n)->setTitle($data['title']); //
         $spreadsheet->getActiveSheet($n)->getStyle($infoStart)->getAlignment()->setVertical(Alignment::VERTICAL_TOP);//首行垂直顶部
         $spreadsheet->getActiveSheet($n)->getStyle($infoStart)->getAlignment()->setWrapText(true);
         // $spreadsheet->getActiveSheet($n)->mergeCells('A1:' . $cellName[$count - 1] . '1'); //合并单元格
@@ -423,7 +446,7 @@ class Excel
         $spreadsheet->getActiveSheet($n)->getStyle($infoStart)->getFont()->setBold(true); //标题栏加粗
         // $spreadsheet->setCellValue('A1', $data['title']); //设置每个sheet中的名称title
 
-        $size = ceil(count($data['rows']) / 500);
+        $size = ceil($total / 500);
         for ($i = 0; $i < $size; $i++) {
             $buffer = array_slice($data['rows'], $i * 500, 500);
 
@@ -431,19 +454,23 @@ class Excel
                 $num = (($i+1) * 500-500)+$key;
                 //dump($num);
                 for ($j = 0; $j < $count; $j++) {
-                    $column = $cellName[$j] . ( $num + $infoStart);
+                    $column = $cellNames[$j] . ( $num + $infoStart);
                     $sheet->setCellValue($column, $item[$j]);
+                    //$sheet->getStyle($column)->getNumberFormat()->setFormatCode(NumberFormat::FORMAT_NUMBER_00);//数字格式
                     //$sheet->getStyle($column)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER); // 单元格水平居中
-                    $spreadsheet->getActiveSheet($n)->getColumnDimension($cellName[$j])->setWidth($data['width'][$j]); //固定列宽
-                    if($data['color'][$j]!='FFFFFF') {
-                        //dump($cellName[$j] . ( $num + $infoStart));exit;
-                        $sheet->getStyle($column)->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setARGB($data['color'][$j]);//单元格背景色
-                    }
+                    //$spreadsheet->getActiveSheet($n)->getColumnDimension($cellName[$j])->setWidth($data['width'][$j]); //固定列宽
+                    //if($data['color'][$j]!='FFFFFF') {
+                        //
+                    //}
                 }
                 unset($buffer[$key]);
             }
-        }
+            //$end = microtime(true); // 获取结束时间
+            //$executionTime = $end - $start; // 计算执行时间
+            //echo "执行时间：".$executionTime." 秒</br>";
 
+        }
+        //dump($executionTime);exit;
 
         $spreadsheet->setActiveSheetIndex(0);//最后设置活动sheet为第一个
     }
